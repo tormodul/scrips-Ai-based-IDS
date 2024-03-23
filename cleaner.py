@@ -1,16 +1,30 @@
 import json
 import csv
+import socket
+import struct
+
+# Function to convert an IP address from string to an integer
+def ip_to_int(ip):
+    if ip and isinstance(ip, str):
+        try:
+            return struct.unpack("!I", socket.inet_aton(ip))[0]
+        except socket.error:
+            # Handles cases where the IP address might be invalid or IPv6
+            return 0
+    else:
+        return 0
 
 # Define the CSV output file name
-csv_file_name = 'network_events2.csv'
-
-# Define the fields you want to extract from the JSON data
-fields = ['sa', 'da', 'pr', 'sp', 'dp', 'bytes_out', 'num_pkts_out', 'bytes_in', 'num_pkts_in', 'time_start', 'time_end', 'entropy', 'total_entropy']
+csv_file_name = 'Ddos2TCP_transformed.csv'
 
 # Open the JSON file and the CSV file for writing
-with open('data1.json', 'r') as json_file, open(csv_file_name, 'w', newline='') as csv_file:
+with open('Ddos2TCP.json', 'r') as json_file, open(csv_file_name, 'w', newline='') as csv_file:
+    # Define the field names for the CSV file
+    fieldnames = ['avg_ipt', 'bytes_in', 'bytes_out', 'dest_ip', 'dest_port', 'entropy', 'proto',
+                  'src_ip', 'src_port', 'time_end', 'time_start', 'total_entropy', 'label', 'duration']
+    
     # Create the CSV writer object
-    csv_writer = csv.DictWriter(csv_file, fieldnames=fields)
+    csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     
     # Write the header row to the CSV file
     csv_writer.writeheader()
@@ -23,13 +37,32 @@ with open('data1.json', 'r') as json_file, open(csv_file_name, 'w', newline='') 
         # Load the JSON object from the current line
         event = json.loads(line)
         
-        # Check if the required fields are in the JSON object
-        if all(field in event for field in fields):
-            # Extract the data and write it to the CSV file
-            csv_writer.writerow({field: event[field] for field in fields})
+        # Prepare the row for the CSV file
+        row = {
+            'bytes_in': event.get('bytes_in', 0),
+            'bytes_out': event.get('bytes_out', 0),
+            'dest_ip': ip_to_int(event.get('da', '')),  # Convert destination IP
+            'dest_port': event.get('dp', 0),
+            'entropy': event.get('entropy', 0.0),
+            'proto': int(event.get('pr', 0)),
+            'src_ip': ip_to_int(event.get('sa', '')),  # Convert source IP
+            'src_port': event.get('sp', 0),
+            'time_end': int(event.get('time_end', 0)),
+            'time_start': int(event.get('time_start', 0)),
+            'total_entropy': event.get('total_entropy', 0.0),
+            'label': 0,  # Default value for label, to be updated in another script
+            'duration': event.get('time_end', 0) - event.get('time_start', 0)
+        }
+        
+        # Calculate avg_ipt (Average Inter-Packet Time) if packets information is available
+        packets = event.get('packets', [])
+        if packets:
+            total_ipt = sum(packet.get('ipt', 0) for packet in packets)
+            row['avg_ipt'] = total_ipt / len(packets) if len(packets) > 0 else 0.0
         else:
-            # Handle cases where not all fields are present, if necessary
-            pass  # For now, just skip any entries that don't match the expected format
+            row['avg_ipt'] = 0.0
+        
+        # Write the row to the CSV file
+        csv_writer.writerow(row)
 
 print(f"Data has been successfully written to {csv_file_name}")
-

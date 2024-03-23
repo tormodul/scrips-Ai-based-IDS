@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This is handled by the updated cleaner.py script
+
 # Input and output file names
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <CSV_File_Name>"
