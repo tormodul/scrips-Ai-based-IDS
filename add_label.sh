@@ -8,8 +8,10 @@ fi
 input_csv="$1"
 output_csv="${input_csv%.csv}_with_label.csv"
 
+dos2unix "$input_csv"
+
 # adding the label column
-awk -v OFS=',' 'NR==1{print $0,"label"; next} {print $0,0}' "$input_csv" > "$output_csv"
+awk -v OFS=',' 'NR==1{print $0,"label"} NR>1{print $0,0}' "$input_csv" > "$output_csv"
 
 echo "Output saved: $output_csv"
 
