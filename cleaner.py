@@ -9,17 +9,15 @@ def ip_to_int(ip):
         try:
             return struct.unpack("!I", socket.inet_aton(ip))[0]
         except socket.error:
-            # Handles cases where the IP address might be invalid or IPv6
+            # Handles end cases
             return 0
     else:
         return 0
 
-# Define the CSV output file name
 csv_file_name = 'Ddos2TCP_transformed.csv'
 
 # Open the JSON file and the CSV file for writing
 with open('Ddos2TCP.json', 'r') as json_file, open(csv_file_name, 'w', newline='') as csv_file:
-    # Define the field names for the CSV file
     fieldnames = ['avg_ipt', 'bytes_in', 'bytes_out', 'dest_ip', 'dest_port', 'entropy', 'proto',
                   'src_ip', 'src_port', 'time_end', 'time_start', 'total_entropy', 'label', 'duration']
     
@@ -32,12 +30,9 @@ with open('Ddos2TCP.json', 'r') as json_file, open(csv_file_name, 'w', newline='
     # Skip the first line (configuration data)
     next(json_file)
     
-    # Iterate over each line in the JSON file
     for line in json_file:
-        # Load the JSON object from the current line
         event = json.loads(line)
         
-        # Prepare the row for the CSV file
         row = {
             'bytes_in': event.get('bytes_in', 0),
             'bytes_out': event.get('bytes_out', 0),
@@ -62,7 +57,6 @@ with open('Ddos2TCP.json', 'r') as json_file, open(csv_file_name, 'w', newline='
         else:
             row['avg_ipt'] = 0.0
         
-        # Write the row to the CSV file
         csv_writer.writerow(row)
 
 print(f"Data has been successfully written to {csv_file_name}")
